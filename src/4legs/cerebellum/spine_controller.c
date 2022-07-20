@@ -20,7 +20,7 @@ extern uint8_t _binary_spine_bin_size;
 static uint8_t _spinefw_buf[8*1024];
 
 #define SPINE_FW_SIG		(0x59100000)
-#define SPINE_FW_VERSION	(0x00000001)
+#define SPINE_FW_VERSION	(0x00000002)
 static const uint32_t cSpineFwVersion = SPINE_FW_SIG | SPINE_FW_VERSION;
 
 int cerebellum_spine_version_check_and_update(SPINE spine, int force)

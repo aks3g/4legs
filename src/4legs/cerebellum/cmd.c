@@ -76,6 +76,29 @@ static ConsoleCommand update_spine_cmd =
 	.help = update_spine_help,
 };
 
+/*---------------------------------------------------------------------------*/
+static const char *read_pos_help(void)
+{
+	return "Read potential meter from SPINEs";
+}
+
+static int read_pos_command(const int argc, const char **argv)
+{
+	SPINE_POTENTION pos;
+	for (int i=0 ; i<4 ; ++i) {
+		lib4legs_spine_if_get_potention(i, &pos);
+		lib4legs_printf("[%d] %4d, %4d, %4d\n", i, pos.val[0], pos.val[1], pos.val[2]);
+	}
+
+	return 0;
+}
+
+static ConsoleCommand read_pos_cmd =
+{
+	.name = "pos",
+	.func = read_pos_command,
+	.help = read_pos_help,
+};
 
 /*---------------------------------------------------------------------------*/
 static const char *diag_help(void)
@@ -382,6 +405,12 @@ static const Lib4legsMotion sMove1[12] =
 	{1, {{0, 33,  0}, {0, 33, 17.5}, {0, 33,  0}, {0, 33,-17.5}}}
 };
 
+static const Lib4legsMotion sMove2[2] =
+{
+	{5, {{0, 35, 0}, {0, 35, 0}, {0, 28, 0}, {0, 28, 0}}},
+	{5, {{0, 28, 0}, {0, 28, 0}, {0, 35, 0}, {0, 35, 0}}},
+};
+
 typedef struct {
 	int seq_num;
 	int seq;
@@ -451,9 +480,6 @@ static int move_command(const int argc, const char **argv)
 	uint32_t pattern = 0;
 	if (argc > 0) {
 		pattern = strtoul(argv[0], NULL, 10);
-		if (pattern > 1) {
-			pattern = 0;
-		}
 	}
 	
 	lib4legs_spine_if_set_servo_mode(0, SPINE_MODE_ANGLE, 0);
@@ -463,6 +489,9 @@ static int move_command(const int argc, const char **argv)
 
 	if (pattern == 1) {
 		_install_motion(12, sMove1);
+	}
+	else if (pattern == 2) {
+		_install_motion(6, sMove2);
 	}
 	else {
 		_install_motion(6, sMove0);
@@ -498,6 +527,7 @@ static ConsoleCommand move_cmd =
 /*---------------------------------------------------------------------------*/
 void initialize_commands(void)
 {
+	consoleInstallCommand(&read_pos_cmd);
 	consoleInstallCommand(&base_pulse_cmd);
 	consoleInstallCommand(&legcfg_cmd);
 	consoleInstallCommand(&legcfga_cmd);

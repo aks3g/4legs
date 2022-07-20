@@ -27,5 +27,5 @@ typedef struct {
 
 typedef uint8_t (*XmodemRxCallback)(uint8_t status, const XmodemContext *ctx);
 
-uint8_t xmodem_receive(XmodemContext *buf,  uint32_t size, XmodemRxCallback cb);
+uint8_t xmodem_receive(XmodemContext *buf, XmodemRxCallback cb);
 

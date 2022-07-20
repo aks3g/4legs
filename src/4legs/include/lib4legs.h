@@ -9,20 +9,24 @@
 
 #include <samd51_gpio.h>
 
-#define SINT2_PIN		SAMD51_GPIO_A05
-#define SINT1_PIN		SAMD51_GPIO_A06
+
+#define VCC_EN_PIN		SAMD51_GPIO_A02
+#define VREF_PIN		SAMD51_GPIO_A03
+#define SW_SENS_PIN		SAMD51_GPIO_B04
+#define POWER_ON_PIN	SAMD51_GPIO_B05
+#define EN_7V4_PIN		SAMD51_GPIO_B06
+#define EN_6V0_PIN		SAMD51_GPIO_B07
+#define VBAT_SENS_A_PIN	SAMD51_GPIO_B08
+#define VCC_SENS_A_PIN	SAMD51_GPIO_B09
+#define DCDC_PG_PIN		SAMD51_GPIO_A04
+
+#define BP_S_PIN		SAMD51_GPIO_A07
 #define SCL_S_PIN		SAMD51_GPIO_A08
 #define SDA_S_PIN		SAMD51_GPIO_A09
 
 #define LED0_PIN		SAMD51_GPIO_B12
-#define LED1_PIN		SAMD51_GPIO_B13
-#define LED2_PIN		SAMD51_GPIO_B14
 
-#define VBUS_DET_PIN	SAMD51_GPIO_A07
-#define USB_OE_PIN		SAMD51_GPIO_A20
-#define USB_SEL_PIN		SAMD51_GPIO_A21
-#define USB_CC1_PIN		SAMD51_GPIO_A22
-#define USB_CC2_PIN		SAMD51_GPIO_A23
+#define VBUS_DET_PIN	SAMD51_GPIO_A06
 #define USB_DM_PIN		SAMD51_GPIO_A24
 #define USB_DP_PIN		SAMD51_GPIO_A25
 
@@ -59,35 +63,11 @@ void lib4legs_led_clear(uint8_t bitmap);
 void lib4legs_led_toggle(uint8_t bitmap);
 
 /* GPIO */
-inline int lib4legs_sint1_stat(void)
-{
-	return samd51_gpio_input(SINT1_PIN);
-}
-
-inline int lib4legs_sint2_stat(void)
-{
-	return samd51_gpio_input(SINT2_PIN);
-}
-
 inline int lib4legs_vbus_det_stat(void)
 {
 	return samd51_gpio_input(VBUS_DET_PIN);
 }
 
-inline int lib4legs_cc1_stat(void)
-{
-	return samd51_gpio_input(USB_CC1_PIN);
-}
-
-inline int lib4legs_cc2_stat(void)
-{
-	return samd51_gpio_input(USB_CC2_PIN);
-}
-
-inline int lib4legs_usb_sel_swap(void)
-{
-	return samd51_gpio_output_toggle(USB_SEL_PIN);
-}
 
 /* Sensor */
 typedef struct {
@@ -111,7 +91,10 @@ typedef enum
 	SPINE0 = 0,
 	SPINE1,
 	SPINE2,
-	SPINE3,	
+	SPINE3,
+	SPINE_ARM,
+	SPINE_FINGER,
+	MAX_SPINE
 } SPINE;
 
 typedef enum
@@ -120,6 +103,10 @@ typedef enum
 	SERVO_ID_2ND_JOINT,
 	SERVO_ID_1ST_JOINT
 } SPINE_SERVO_ID;
+
+typedef struct {
+	uint16_t val[3];
+} SPINE_POTENTION;
 
 typedef enum
 {
@@ -148,6 +135,7 @@ int lib4legs_spine_if_set_servo_mode(const SPINE spine, SPINE_MODE mode, int ena
 int lib4legs_spine_if_set_servo_pulse_width(const SPINE spine, uint16_t s0_us, uint16_t s1_us, uint16_t s2_us);
 int lib4legs_spine_if_get_servo_pulse_width(const SPINE spine, uint16_t *s0_us, uint16_t *s1_us, uint16_t *s2_us);
 int lib4legs_spine_if_update_servo(const SPINE spine);
+int lib4legs_spine_if_get_potention(const SPINE spine, SPINE_POTENTION *potention);
 
 
 /* Control Pulse */
@@ -167,6 +155,15 @@ int lib4legs_check_force_bootloader(void);
 uint32_t lib4legs_get_fwsize_for_update(void);
 int lib4legs_check_valid_flash(void);
 
+/* Power */
+int lib4legs_power_ctrl_dcdc(int enable);
+int lib4legs_power_ctrl_6v0(int enable);
+int lib4legs_power_ctrl_7v4(int enable);
+uint32_t lib4legs_power_get_vbat(void);
+uint32_t lib4legs_power_get_vcc(void);
+int lib4legs_power_check_power_good(void);
+
+
 /* Error Code */
 #define LIB4LEGS_ERROR_OK							(0)
 #define LIB4LEGS_ERROR_NULL							(0x80500000)
@@ -180,3 +177,4 @@ int lib4legs_check_valid_flash(void);
 #define LIB4LEGS_ERROR_SPINE_IF_NULL				(0x80510001)
 #define LIB4LEGS_ERROR_SPINE_IF_NOBUF				(0x80510002)
 
+#define LIB4LEGS_ERROR_POWER_INVALID				(0x80520000)

@@ -31,6 +31,7 @@
 #include "console.h"
 
 #include "spine_controller.h"
+#include "posture.h"
 
 
 static void _putchar(const char c)
@@ -67,7 +68,9 @@ static void _setup_spines(void)
 	lib4legs_spine_if_set_limit(SPINE3, SERVO_ID_1ST_JOINT,  750, 2250);
 	lib4legs_spine_if_set_origin(SPINE3, 1450, 1800, 1750);
 
-
+	// Set Home position
+	cerebellum_posture_initialize();
+	cerebellum_posture_home();
 
 	// Start Servo pulse
 	lib4legs_enable_base_pulse(1);

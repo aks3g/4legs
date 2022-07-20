@@ -11,6 +11,6 @@
 
 #include <samd51_sercom.h>
 
-int inialize_spine_if(SAMD51_SERCOM i2c_if);
+int inialize_spine_if(SAMD51_SERCOM i2c_if, SAMD51_SERCOM i2c_if_arm);
 
 #endif /* SPINE_IF_H_ */

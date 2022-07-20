@@ -14,8 +14,10 @@
 #include "libxmegaE5_adc.h"
 #include "libxmegaE5_gpio.h"
 
+static uint8_t sAdcBusy = 0;
 static uint16_t sGndLevelGainX1 = 0;
 static ADC_GAIN sGain = ADC_GAIN_1X;
+static LibxmegaE5AdcDoneCb sCb = NULL;
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 static uint8_t adc_request(ADC_MODE mode, uint8_t bitResolution);
@@ -147,6 +149,42 @@ uint16_t libxmegaE5_adc_grabOneShot(void)
 	}
 }
 
+
+/*---------------------------------------------------------------------------*/
+uint8_t libxmegaE5_adc_convert(ADC_CHANNEL ch, ADC_GAIN gain = ADC_GAIN_1X, LibxmegaE5AdcDoneCb cb=NULL)
+{
+	if (ch < ADC_CH0 || ADC_CH15 < ch) {
+		return LIB_XMEGA_E5_ERROR_ADC_INVALID_CHANNEL;
+	}
+
+	if (sAdcBusy){
+	//	return LIB_XMEGA_E5_ERROR_BUSY;
+	}
+
+	sAdcBusy = 1;
+	sCb = cb;
+	sGain = gain;
+
+	/* 24.15.1 CTRL ? Control register */
+	ADCA.CH0.CTRL = ADC_CH_INPUTMODE_SINGLEENDED_gc | ((gain << ADC_CH_GAIN_gp) & ADC_CH_GAIN_gm);
+
+	/* 24.15.2 MUXCTRL ? MUX Control register */
+	ADCA.CH0.MUXCTRL = (ch << ADC_CH_MUXPOS_gp) | ADC_CH_MUXNEG_INTGND_MODE3_gc;
+
+	/* 24.15.3 INTCTRL ? Interrupt Control register */
+	ADCA.CH0.INTCTRL = ADC_CH_INTMODE_COMPLETE_gc | ADC_CH_INTLVL_LO_gc;
+
+	/* 24.14.1 CTRLA ? Control register A */
+	ADCA.CTRLA |= ADC_ENABLE_bm;
+
+	ADCA.INTFLAGS = 0x01;
+	ADCA.CH0.INTFLAGS = 0x01;
+
+	ADCA.CH0.CTRL |= ADC_CH_START_bm;
+
+	return LIB_XMEGA_E5_ERROR_OK;
+}
+
 /*---------------------------------------------------------------------------*/
 static uint8_t adc_request(ADC_MODE mode, uint8_t bitResolution)
 {
@@ -168,4 +206,28 @@ static uint8_t adc_request(ADC_MODE mode, uint8_t bitResolution)
 	ADCA.CTRLB = ADC_CURRLIMIT_NO_gc | freerun | resolution;
 
 	return LIB_XMEGA_E5_ERROR_OK;
+}
+
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+ISR(ADCA_CH0_vect)
+{
+	uint16_t val = 0;
+	libxmegaE5_gpio_output(GPIO_PORTC, GPIO_PIN7, 1);
+
+	if (sGain == ADC_GAIN_1X) {
+		val = (ADCA.CH0RES);
+		val = (val > sGndLevelGainX1) ? (val - sGndLevelGainX1) : (0);
+	} else {
+		val = (ADCA.CH0RES);
+	}
+
+	sAdcBusy = 0;
+	if (sCb != NULL) {
+		uint16_t ch = (ADCA.CH0.MUXCTRL & ADC_CH_MUXNEG_INTGND_MODE3_gc) >> ADC_CH_MUXPOS_gp;
+		sCb(ch, val);
+	}
+
+	return;
 }

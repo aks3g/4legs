@@ -35,48 +35,51 @@
 #include "internal/lsm6ds3h.h"
 #include "internal/spine_if.h"
 #include "internal/backup_ram.h"
+#include "internal/power.h"
 
 LIB4LEGS_BACKUP_RAM gBackupRam;
 
-#define SINT1_SOURCE_EXINT_CH					(SAMD51_EIC_CHANNEL5)
-#define SINT2_SOURCE_EXINT_CH					(SAMD51_EIC_CHANNEL6)
 #define VBUS_DET_SOURCE_EXINT_CH				(SAMD51_EIC_CHANNEL7)
-
-typedef struct {
-	int is_vbus_connected;
-	int checking;
-	uint16_t timer;
-} UsbCableChecker;
-static UsbCableChecker sUsbCableCheck = {0,0,0};
-static const uint16_t cUsbCableCheckTimer = 500;
 static volatile uint32_t sTimer0Tick = 0;
 
 static Lib4legsUpdatePulseCb sBasePulseCb = NULL;
 static int sBasePulseEnabled = 0;
 
+const  uint16_t cPowerOnThreshold  = 10;
+const  uint16_t cPowerOffThreshold = 200;
+static uint16_t sPowerButtonPress  = 0;
+
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
 static void _timer10ms_cb(void)
-{
-	if (sUsbCableCheck.checking) {
-		sUsbCableCheck.timer--;
-		if (sUsbCableCheck.timer == 0) {
-			sUsbCableCheck.timer = cUsbCableCheckTimer;
-			// lib4legs_usb_sel_swap();
-		}
-	}
-	
+{	
 	if (sBasePulseEnabled) {
 		samd51_gpio_output_toggle(INT0_PIN);
 		samd51_gpio_output_toggle(INT1_PIN);
 		samd51_gpio_output_toggle(INT2_PIN);
 		samd51_gpio_output_toggle(INT3_PIN);
+		samd51_gpio_output_toggle(BP_S_PIN);
 		
 		if (samd51_gpio_input(INT0_PIN) !=0 && sBasePulseCb != NULL) {
 			sBasePulseCb();
 		}
 	}
-	
+
+	if (lib4legs_power_check_power_button()) {
+		sPowerButtonPress++;
+		if (sPowerButtonPress > cPowerOffThreshold){
+			lib4legs_power_on(0);
+		}
+		else if (sPowerButtonPress > cPowerOnThreshold) {
+			lib4legs_power_on(1);
+		}
+	}
+	else {
+		sPowerButtonPress = 0;
+	}
+
+//	lib4legs_power_update();
+
 	sTimer0Tick++;
 	
 	return;
@@ -84,51 +87,11 @@ static void _timer10ms_cb(void)
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------*/
-static void _usb_cable_check_and_connect(void) {
-	if (lib4legs_cc1_stat()) {
-		lib4legs_led_set(LIB4LEGS_LED1);
-	}
-	else if(lib4legs_cc2_stat()) {
-		lib4legs_led_set(LIB4LEGS_LED2);
-	}
-	else {
-		sUsbCableCheck.checking = 1;
-		sUsbCableCheck.timer = cUsbCableCheckTimer;
-	}
-	
-}
-
-/*--------------------------------------------------------------------------*/
-static void _vbus_det_cb(void) {
-	if (lib4legs_vbus_det_stat()) {
-		sUsbCableCheck.is_vbus_connected = 1;
-		_usb_cable_check_and_connect();
-	}
-	else {
-		sUsbCableCheck.is_vbus_connected = 0;
-	}
-}
-
-/*--------------------------------------------------------------------------*/
 static volatile int sLinkUp = 0;
 static void _check_link_up(void)
 {
 	sLinkUp = 1;
-	sUsbCableCheck.checking = 0;
 	return;
-}
-
-/*--------------------------------------------------------------------------*/
-/*--------------------------------------------------------------------------*/
-static void _int1_cb(void)
-{
-	lsm6ds3h_on_int1();
-}
-
-/*--------------------------------------------------------------------------*/
-static void _int2_cb(void)
-{
-	lsm6ds3h_on_int2();
 }
 
 
@@ -145,7 +108,7 @@ int lib4legs_initialzie(void)
 	samd51_tc_initialize_as_timer(SAMD51_TC0, 1000000, 10000, _timer10ms_cb);
 
 	//J Setting I2C
-//	samd51_i2c_initialize(SAMD51_SERCOM0, 400000);
+	samd51_i2c_initialize(SAMD51_SERCOM0, 100000);
 	samd51_i2c_initialize(SAMD51_SERCOM2, 100000);
 
 	//J Setting USB
@@ -158,22 +121,19 @@ int lib4legs_initialzie(void)
 	usbCdcRegisterLinkUpCallback(_check_link_up);
 	initialize_usb(reg_buf, "DDC Hacker Serial Port");
 
-	//J 最初からVBUSが立っていれば通信処理を走らせる
-	if (lib4legs_vbus_det_stat()) {
-		sUsbCableCheck.is_vbus_connected = 1;
-		_usb_cable_check_and_connect();
-	}
-
 	//J Setting Ex Interrupt
 	samd51_external_interrupt_initialize(0);
-	samd51_external_interrupt_setup(SINT1_SOURCE_EXINT_CH, SAMD51_EIC_SENSE_RISE, 0, _int1_cb);
-	samd51_external_interrupt_setup(SINT2_SOURCE_EXINT_CH, SAMD51_EIC_SENSE_RISE, 0, _int2_cb);
-//	samd51_external_interrupt_setup(VBUS_DET_SOURCE_EXINT_CH, SAMD51_EIC_SENSE_BOTH, 0, _vbus_det_cb);
 
-	//J IMUのセットアップ
-//	initialize_sensor();
+	//J Setting ADC
+	SAMD51_ADC_POST_PROCESS_OPT adc0_opt;
+	{
+		adc0_opt.average_cnt = SAMD51_ADC_AVERAGE_16_SAMPLES;
+		adc0_opt.average_div_power = 4;
+	}
+	samd51_adc_setup(0, SAMD51_ADC_SINGLE_SHOT, SAMD51_ADC_BIT_RES_12, SAMD51_ADC_REF_EXTERNAL_REFA, &adc0_opt);
+	lib4legs_power_update();
 
-	inialize_spine_if(SAMD51_SERCOM2);
+	inialize_spine_if(SAMD51_SERCOM2, SAMD51_SERCOM0);
 
 	return 0;
 }

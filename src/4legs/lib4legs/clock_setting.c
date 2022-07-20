@@ -61,5 +61,9 @@ void initialize_clock_tree(void)
 	samd51_mclk_enable(SAMD51_APBB_SERCOM2, 1);
 	samd51_gclk_configure_peripheral_channel(SAMD51_GCLK_SERCOM2_CORE, CLK_GEN_NUMBER_48MHZ);
 
+	// ADC
+	samd51_mclk_enable(SAMD51_APBD_ADCn0, 1);
+	samd51_gclk_configure_peripheral_channel(SAMD51_GCLK_ADC0, CLK_GEN_NUMBER_48MHZ);
+
 	return;
 }

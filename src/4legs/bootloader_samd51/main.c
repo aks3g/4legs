@@ -80,7 +80,7 @@ void lib4legs_bootloader_update_main_fw(uint32_t fwsize)
 		lib4legs_timer_delay_ms(1000);
 	}
 
-	xmodem_receive(&xmodemctx, fwsize, _fw_receive_cb);
+//	xmodem_receive(&xmodemctx, _fw_receive_cb);
 
 	return;
 }

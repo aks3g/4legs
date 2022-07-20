@@ -77,12 +77,15 @@ typedef struct {
 	ADC_REFERNCE_SELECT vrefSelect;
 } ADC_INIT_OPT;
 
+typedef void (*LibxmegaE5AdcDoneCb)(uint8_t ch, uint16_t val);
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 uint8_t libxmegaE5_adc_initialize(uint32_t sps, uint32_t sysclkHz, ADC_MODE mode, uint8_t bitResolution, ADC_INIT_OPT *opt);
 uint8_t libxmegaE5_adc_selectChannel(ADC_CHANNEL ch, ADC_GAIN gain);
 uint16_t libxmegaE5_adc_grabOneShot(void);
+uint8_t libxmegaE5_adc_convert(ADC_CHANNEL ch, ADC_GAIN gain, LibxmegaE5AdcDoneCb cb);
+
 inline uint8_t libxmegaE5_adc_grabFreerun(void)
 {
 	/* 24.14.6 INTFLAGS ? Interrupt Flags register */

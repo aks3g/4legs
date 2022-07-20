@@ -63,7 +63,7 @@
       <Value>../include</Value>
     </ListValues>
   </armgcc.compiler.directories.IncludePaths>
-  <armgcc.compiler.optimization.level>Optimize for size (-Os)</armgcc.compiler.optimization.level>
+  <armgcc.compiler.optimization.level>Optimize debugging experience (-Og)</armgcc.compiler.optimization.level>
   <armgcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</armgcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
   <armgcc.compiler.warnings.AllWarnings>True</armgcc.compiler.warnings.AllWarnings>
   <armgcc.linker.libraries.Libraries>
@@ -143,6 +143,106 @@ cp $(OutputDirectory)\libsamd51.a $(MSBuildProjectDirectory)\..\lib</PostBuildEv
 cp $(OutputDirectory)\libsamd51.a $(MSBuildProjectDirectory)\..\lib</PostBuildEvent>
     <OutputFileName>libsamd51</OutputFileName>
     <OutputFileExtension>.a</OutputFileExtension>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release_Finfer' ">
+    <ToolchainSettings>
+      <ArmGcc>
+  <armgcc.common.outputfiles.hex>True</armgcc.common.outputfiles.hex>
+  <armgcc.common.outputfiles.lss>True</armgcc.common.outputfiles.lss>
+  <armgcc.common.outputfiles.eep>True</armgcc.common.outputfiles.eep>
+  <armgcc.common.outputfiles.bin>True</armgcc.common.outputfiles.bin>
+  <armgcc.common.outputfiles.srec>True</armgcc.common.outputfiles.srec>
+  <armgcc.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>NDEBUG</Value>
+    </ListValues>
+  </armgcc.compiler.symbols.DefSymbols>
+  <armgcc.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>%24(PackRepoDir)\arm\cmsis\5.0.1\CMSIS\Include\</Value>
+      <Value>%24(PackRepoDir)\atmel\SAMD51_DFP\1.0.70\include</Value>
+      <Value>../include</Value>
+    </ListValues>
+  </armgcc.compiler.directories.IncludePaths>
+  <armgcc.compiler.optimization.level>Optimize debugging experience (-Og)</armgcc.compiler.optimization.level>
+  <armgcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</armgcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+  <armgcc.compiler.warnings.AllWarnings>True</armgcc.compiler.warnings.AllWarnings>
+  <armgcc.linker.libraries.Libraries>
+    <ListValues>
+      <Value>libm</Value>
+    </ListValues>
+  </armgcc.linker.libraries.Libraries>
+  <armgcc.linker.optimization.GarbageCollectUnusedSections>True</armgcc.linker.optimization.GarbageCollectUnusedSections>
+  <armgcc.linker.memorysettings.ExternalRAM>False</armgcc.linker.memorysettings.ExternalRAM>
+  <armgcc.assembler.general.IncludePaths>
+    <ListValues>
+      <Value>%24(PackRepoDir)\arm\cmsis\5.0.1\CMSIS\Include\</Value>
+      <Value>%24(PackRepoDir)\atmel\SAMD51_DFP\1.0.70\include</Value>
+    </ListValues>
+  </armgcc.assembler.general.IncludePaths>
+  <armgcc.preprocessingassembler.general.IncludePaths>
+    <ListValues>
+      <Value>%24(PackRepoDir)\arm\cmsis\5.0.1\CMSIS\Include\</Value>
+      <Value>%24(PackRepoDir)\atmel\SAMD51_DFP\1.0.70\include</Value>
+    </ListValues>
+  </armgcc.preprocessingassembler.general.IncludePaths>
+</ArmGcc>
+    </ToolchainSettings>
+    <PostBuildEvent>cp $(MSBuildProjectDirectory)\include\*.h $(MSBuildProjectDirectory)\..\include
+cp $(OutputDirectory)\libsamd51.a $(MSBuildProjectDirectory)\..\lib</PostBuildEvent>
+    <OutputFileName>libsamd51</OutputFileName>
+    <OutputFileExtension>.a</OutputFileExtension>
+    <OutputPath>bin\Release_Finfer\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release_Arm' ">
+    <ToolchainSettings>
+      <ArmGcc>
+  <armgcc.common.outputfiles.hex>True</armgcc.common.outputfiles.hex>
+  <armgcc.common.outputfiles.lss>True</armgcc.common.outputfiles.lss>
+  <armgcc.common.outputfiles.eep>True</armgcc.common.outputfiles.eep>
+  <armgcc.common.outputfiles.bin>True</armgcc.common.outputfiles.bin>
+  <armgcc.common.outputfiles.srec>True</armgcc.common.outputfiles.srec>
+  <armgcc.compiler.symbols.DefSymbols>
+    <ListValues>
+      <Value>NDEBUG</Value>
+    </ListValues>
+  </armgcc.compiler.symbols.DefSymbols>
+  <armgcc.compiler.directories.IncludePaths>
+    <ListValues>
+      <Value>%24(PackRepoDir)\arm\cmsis\5.0.1\CMSIS\Include\</Value>
+      <Value>%24(PackRepoDir)\atmel\SAMD51_DFP\1.0.70\include</Value>
+      <Value>../include</Value>
+    </ListValues>
+  </armgcc.compiler.directories.IncludePaths>
+  <armgcc.compiler.optimization.level>Optimize debugging experience (-Og)</armgcc.compiler.optimization.level>
+  <armgcc.compiler.optimization.PrepareFunctionsForGarbageCollection>True</armgcc.compiler.optimization.PrepareFunctionsForGarbageCollection>
+  <armgcc.compiler.warnings.AllWarnings>True</armgcc.compiler.warnings.AllWarnings>
+  <armgcc.linker.libraries.Libraries>
+    <ListValues>
+      <Value>libm</Value>
+    </ListValues>
+  </armgcc.linker.libraries.Libraries>
+  <armgcc.linker.optimization.GarbageCollectUnusedSections>True</armgcc.linker.optimization.GarbageCollectUnusedSections>
+  <armgcc.linker.memorysettings.ExternalRAM>False</armgcc.linker.memorysettings.ExternalRAM>
+  <armgcc.assembler.general.IncludePaths>
+    <ListValues>
+      <Value>%24(PackRepoDir)\arm\cmsis\5.0.1\CMSIS\Include\</Value>
+      <Value>%24(PackRepoDir)\atmel\SAMD51_DFP\1.0.70\include</Value>
+    </ListValues>
+  </armgcc.assembler.general.IncludePaths>
+  <armgcc.preprocessingassembler.general.IncludePaths>
+    <ListValues>
+      <Value>%24(PackRepoDir)\arm\cmsis\5.0.1\CMSIS\Include\</Value>
+      <Value>%24(PackRepoDir)\atmel\SAMD51_DFP\1.0.70\include</Value>
+    </ListValues>
+  </armgcc.preprocessingassembler.general.IncludePaths>
+</ArmGcc>
+    </ToolchainSettings>
+    <PostBuildEvent>cp $(MSBuildProjectDirectory)\include\*.h $(MSBuildProjectDirectory)\..\include
+cp $(OutputDirectory)\libsamd51.a $(MSBuildProjectDirectory)\..\lib</PostBuildEvent>
+    <OutputFileName>libsamd51</OutputFileName>
+    <OutputFileExtension>.a</OutputFileExtension>
+    <OutputPath>bin\Release_Arm\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="include\samd51_ac.h">

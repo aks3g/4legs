@@ -16,8 +16,32 @@
 #include <libxmegaE5_timer.h>
 #include <libxmegaE5_i2c.h>
 #include <libxmegaE5_servo.h>
+#include <libxmegaE5_adc.h>
 
 #include "libspine.h"
+
+#if defined(TYPE_ARM)
+#	define PWM_OUT0_PIN		(GPIO_PIN2)
+#	define SERVO_ADC_CH0	(ADC_CH3)
+#	define SERVO_ADC_CH1	(ADC_CH4)
+#	define SERVO_ADC_CH2	(ADC_CH7)	// not used
+#	define MOTOR_DIR_F		(GPIO_PIN6)
+#	define MOTOR_DIR_R		(GPIO_PIN7)
+#elif defined(TYPE_FINGER)
+#	define PWM_OUT0_PIN		(GPIO_PIN2)
+#	define PWM_OUT1_PIN		(GPIO_PIN4)
+#	define PWM_OUT2_PIN		(GPIO_PIN6)
+#	define SERVO_ADC_CH0	(ADC_CH3)
+#	define SERVO_ADC_CH1	(ADC_CH5)
+#	define SERVO_ADC_CH2	(ADC_CH7)
+#else
+#	define PWM_OUT0_PIN		(GPIO_PIN3)
+#	define PWM_OUT1_PIN		(GPIO_PIN5)
+#	define PWM_OUT2_PIN		(GPIO_PIN7)
+#	define SERVO_ADC_CH0	(ADC_CH2)
+#	define SERVO_ADC_CH1	(ADC_CH4)
+#	define SERVO_ADC_CH2	(ADC_CH6)
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -46,10 +70,13 @@ typedef struct {
 			uint16_t servo1_limit_max;		// 0x1e - 0x1f
 			uint16_t servo2_limit_min;		// 0x20 - 0x21
 			uint16_t servo2_limit_max;		// 0x22 - 0x23
-			uint16_t servo0_pos0;			// 0x24 - 0x25		
-			uint16_t servo1_pos0;			// 0x26 - 0x27
-			uint16_t servo2_pos0;			// 0x28 - 0x29
-			uint8_t  rsvd_0x2a_0x77[78];	// 0x2a - 0x77
+			uint16_t servo0_pos;			// 0x24 - 0x25		
+			uint16_t servo1_pos;			// 0x26 - 0x27
+			uint16_t servo2_pos;			// 0x28 - 0x29
+			uint16_t servo0_potention;		// 0x2A - 0x2B
+			uint16_t servo1_potention;		// 0x2C - 0x2D
+			uint16_t servo2_potention;		// 0x2E - 0x2F			
+			uint8_t  rsvd_0x30_0x77[72];	// 0x30 - 0x77
 			uint32_t flash_version;			// 0x78 - 0x7b
 			uint32_t flash_addr;			// 0x7c - 0x7f
 			uint8_t  flash_block[128];		// 0x80 - 0xff
@@ -75,6 +102,12 @@ static const Lib4legsRemap sRemap[4]
 	{{2,1,0},-1}
 };
 
+typedef struct 
+{
+	uint16_t target;
+	uint16_t active;
+} Lib4legsLinerSlider;
+static Lib4legsLinerSlider sSlider = {0, 0};
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -88,13 +121,23 @@ static LibxmeaE5Servo sServo[3];
 static void _initialzie_gpio(void)
 {
 	// PWM Output
-	libxmegaE5_gpio_initialize(GPIO_PORTA, GPIO_PIN3, GPIO_OUT, GPIO_TOTEM);
-	libxmegaE5_gpio_initialize(GPIO_PORTA, GPIO_PIN5, GPIO_OUT, GPIO_TOTEM);
-	libxmegaE5_gpio_initialize(GPIO_PORTA, GPIO_PIN7, GPIO_OUT, GPIO_TOTEM);
-	libxmegaE5_gpio_output(GPIO_PORTA, GPIO_PIN3, 1);
-	libxmegaE5_gpio_output(GPIO_PORTA, GPIO_PIN5, 1);
-	libxmegaE5_gpio_output(GPIO_PORTA, GPIO_PIN7, 1);
+#if defined(TYPE_ARM)
+	libxmegaE5_gpio_initialize(GPIO_PORTA, PWM_OUT0_PIN, GPIO_OUT, GPIO_TOTEM);
+	libxmegaE5_gpio_output(GPIO_PORTA, PWM_OUT0_PIN, 1);
 
+	libxmegaE5_gpio_initialize(GPIO_PORTD, MOTOR_DIR_F, GPIO_OUT, GPIO_TOTEM);
+	libxmegaE5_gpio_initialize(GPIO_PORTD, MOTOR_DIR_R, GPIO_OUT, GPIO_TOTEM);
+	libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_F, 1);
+	libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_R, 1);
+
+#else
+	libxmegaE5_gpio_initialize(GPIO_PORTA, PWM_OUT0_PIN, GPIO_OUT, GPIO_TOTEM);
+	libxmegaE5_gpio_initialize(GPIO_PORTA, PWM_OUT1_PIN, GPIO_OUT, GPIO_TOTEM);
+	libxmegaE5_gpio_initialize(GPIO_PORTA, PWM_OUT2_PIN, GPIO_OUT, GPIO_TOTEM);
+	libxmegaE5_gpio_output(GPIO_PORTA, PWM_OUT0_PIN, 1);
+	libxmegaE5_gpio_output(GPIO_PORTA, PWM_OUT1_PIN, 1);
+	libxmegaE5_gpio_output(GPIO_PORTA, PWM_OUT2_PIN, 1);
+#endif
 	// LED
 	libxmegaE5_gpio_initialize(GPIO_PORTC, GPIO_PIN6, GPIO_OUT, GPIO_TOTEM);
 	libxmegaE5_gpio_initialize(GPIO_PORTC, GPIO_PIN7, GPIO_OUT, GPIO_TOTEM);
@@ -111,18 +154,44 @@ static void _initialzie_gpio(void)
 	return;
 }
 
+static void _adc_ain0_cb(uint8_t ch, uint16_t val);
+static void _adc_ain1_cb(uint8_t ch, uint16_t val);
+static void _adc_ain2_cb(uint8_t ch, uint16_t val);
+
+static void _adc_ain0_cb(uint8_t ch, uint16_t val)
+{
+	si2c_buf.buf.map.servo0_potention = val;
+	
+	libxmegaE5_adc_convert(SERVO_ADC_CH1, ADC_GAIN_1X, _adc_ain1_cb);
+}
+static void _adc_ain1_cb(uint8_t ch, uint16_t val)
+{
+	si2c_buf.buf.map.servo1_potention = val;
+	
+	libxmegaE5_adc_convert(SERVO_ADC_CH2, ADC_GAIN_1X, _adc_ain2_cb);
+}
+static void _adc_ain2_cb(uint8_t ch, uint16_t val)
+{
+	si2c_buf.buf.map.servo2_potention = val;	
+}
+
 /*---------------------------------------------------------------------------*/
 static void _base_clock_cb(void)
 {
 	uint8_t in;
 	libxmegaE5_gpio_input(GPIO_PORTC, GPIO_PIN2, &in);
 	if(in) {
+#if defined(TYPE_ARM)
+		libxmegaE5_servo_start(&sServo[0]);
+#else
 		libxmegaE5_servo_start(&sServo[0]);
 		libxmegaE5_servo_start(&sServo[1]);
 		libxmegaE5_servo_start(&sServo[2]);
+#endif
 	}
 	else {
 		if (sServoUpdateCb != NULL) sServoUpdateCb();
+		libxmegaE5_adc_convert(SERVO_ADC_CH0, ADC_GAIN_1X, _adc_ain0_cb);
 	}
 }
 
@@ -197,6 +266,19 @@ uint8_t libspine_register_servo_update_cb(LibSpineServoUpdateCallbackFunc func)
 /*---------------------------------------------------------------------------*/
 uint8_t libspine_update_servo_param(uint16_t servo0_us, uint16_t servo1_us, uint16_t servo2_us)
 {
+#if defined(TYPE_ARM)
+	if (si2c_buf.buf.map.servo0_limit_min <= servo0_us && servo0_us <= si2c_buf.buf.map.servo0_limit_max) {
+		libxmegaE5_servo_set_pulse_width(&sServo[sRemap[sModuleId].ch_remap[0]], servo0_us);
+	}
+
+	if (si2c_buf.buf.map.servo1_limit_min <= servo1_us && servo1_us <= si2c_buf.buf.map.servo1_limit_max) {
+		if (sSlider.target != servo1_us) {
+			sSlider.target = servo1_us;
+			sSlider.active = 1;
+		}
+	}
+
+#else
 	if (si2c_buf.buf.map.servo0_limit_min <= servo0_us && servo0_us <= si2c_buf.buf.map.servo0_limit_max) {
 		libxmegaE5_servo_set_pulse_width(&sServo[sRemap[sModuleId].ch_remap[0]], servo0_us);
 	}
@@ -208,7 +290,7 @@ uint8_t libspine_update_servo_param(uint16_t servo0_us, uint16_t servo1_us, uint
 	if (si2c_buf.buf.map.servo2_limit_min <= servo2_us && servo2_us <= si2c_buf.buf.map.servo2_limit_max) {
 		libxmegaE5_servo_set_pulse_width(&sServo[sRemap[sModuleId].ch_remap[2]], servo2_us);
 	}
-
+#endif
 	return LIB_XMEGA_E5_ERROR_OK;
 }
 
@@ -285,10 +367,13 @@ int libspine_initialize(uint8_t fwtype)
 	sModuleId = libspine_get_id();
 	
 	//J Servo 用のPWM 信号を生成する為のTimerを準備する
-	libxmegaE5_servo_initialize(&sServo[0], LIB_XMEGA_E5_TCC4, GPIO_PORTA, GPIO_PIN3, 1, 32000000);
-	libxmegaE5_servo_initialize(&sServo[1], LIB_XMEGA_E5_TCC5, GPIO_PORTA, GPIO_PIN5, 1, 32000000);
-	libxmegaE5_servo_initialize(&sServo[2], LIB_XMEGA_E5_TCD5, GPIO_PORTA, GPIO_PIN7, 1, 32000000);
-
+#if defined (TYPE_ARM)
+	libxmegaE5_servo_initialize(&sServo[0], LIB_XMEGA_E5_TCC4, GPIO_PORTA, PWM_OUT0_PIN, 1, 32000000);
+#else
+	libxmegaE5_servo_initialize(&sServo[0], LIB_XMEGA_E5_TCC4, GPIO_PORTA, PWM_OUT0_PIN, 1, 32000000);
+	libxmegaE5_servo_initialize(&sServo[1], LIB_XMEGA_E5_TCC5, GPIO_PORTA, PWM_OUT1_PIN, 1, 32000000);
+	libxmegaE5_servo_initialize(&sServo[2], LIB_XMEGA_E5_TCD5, GPIO_PORTA, PWM_OUT2_PIN, 1, 32000000);
+#endif
 	//J 20msの基準クロックを外部からもらう
 	libxmegaE5_gpio_configeInterrupt(GPIO_PORTC, GPIO_PIN2, INT_BOTHE_EDGE, _base_clock_cb);
 	
@@ -315,6 +400,11 @@ int libspine_initialize(uint8_t fwtype)
 	si2c_buf.buf.map.flash_version = pFwInfo;
 
 	libspine_update_servo_param(si2c_buf.buf.map.servo0_pulse_us, si2c_buf.buf.map.servo1_pulse_us, si2c_buf.buf.map.servo2_pulse_us);
+
+	//J ADCを初期化しておく
+	ADC_INIT_OPT adc_opt;
+	adc_opt.vrefSelect = VREF_EXTERNAL_VREF_ON_PORTA;
+	libxmegaE5_adc_initialize(2000, 32000000, ADC_ONESHOT, 12, &adc_opt);
 
 	//J Status LEDを更新
 	libxmegaE5_gpio_output(GPIO_PORTC, GPIO_PIN6, 0);
@@ -345,15 +435,40 @@ static void _swap_vector(int boot_sect)
 }
 
 /*---------------------------------------------------------------------------*/
+#define THRES_HOLD_P 20
+#define THRES_HOLD_M -20
 int libspine_poll(void)
 {
+#if defined(TYPE_ARM)
+	if (sSlider.active) {
+
+	libxmegaE5_gpio_output(GPIO_PORTC, GPIO_PIN6, 0);
+	libxmegaE5_gpio_output(GPIO_PORTC, GPIO_PIN7, 0);
+
+		int16_t diff = (int16_t)sSlider.target - (int16_t)si2c_buf.buf.map.servo1_potention;
+
+		if (diff > THRES_HOLD_P) {
+			libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_F, 1);
+			libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_R, 0);
+		}
+		else if (diff < THRES_HOLD_M){
+			libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_F, 0);
+			libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_R, 1);
+		}
+		else {
+			sSlider.active = 0;
+			libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_F, 1);
+			libxmegaE5_gpio_output(GPIO_PORTD, MOTOR_DIR_R, 1);
+		}
+		
+	}
+#endif
+
 	if(si2c_buf.buf.map.status == 0) {
 		return -1;
 	}
-	libxmegaE5_gpio_output(GPIO_PORTC, GPIO_PIN6, 1);
 
 	if (si2c_buf.addr == SPINE_MMAP_ADDR_RESTART) {
-		libxmegaE5_gpio_output(GPIO_PORTC, GPIO_PIN6, 1);
 		
 		if (si2c_buf.buf.map.restart == SPINE_RESTART_KEY) {
 			_swap_vector(0);
@@ -367,6 +482,9 @@ int libspine_poll(void)
 	}
 	else if (si2c_buf.addr == SPINE_MMAP_ADDR_SERVO_UPDATE) {
 	}
+
+
+
 
 	si2c_buf.buf.map.status = 0;
 
@@ -403,9 +521,9 @@ void libspine_load_servo_param_by_degree(int16_t angle0, int16_t angle1, int16_t
 	int16_t delta1_us = (int)(angle1 / 9);
 	int16_t delta2_us = (int)(angle2 / 9);
 
-	uint16_t pulse0_us = sRemap[sModuleId].polarity * delta0_us + si2c_buf.buf.map.servo0_pos0;
-	uint16_t pulse1_us = sRemap[sModuleId].polarity * delta1_us + si2c_buf.buf.map.servo1_pos0;
-	uint16_t pulse2_us = sRemap[sModuleId].polarity * delta2_us + si2c_buf.buf.map.servo2_pos0;
+	uint16_t pulse0_us = sRemap[sModuleId].polarity * delta0_us + si2c_buf.buf.map.servo0_pos;
+	uint16_t pulse1_us = sRemap[sModuleId].polarity * delta1_us + si2c_buf.buf.map.servo1_pos;
+	uint16_t pulse2_us = sRemap[sModuleId].polarity * delta2_us + si2c_buf.buf.map.servo2_pos;
 
 	libspine_update_servo_param(pulse0_us, pulse1_us, pulse2_us);
 
