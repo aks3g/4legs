@@ -109,6 +109,7 @@
     <PostBuildEvent>"$(ToolchainDir)\avr-objcopy.exe" -O binary "$(OutputDirectory)\$(OutputFileName)$(OutputFileExtension)" "$(OutputDirectory)\$(OutputFileName).bin"
 python.exe  "$(MSBuildProjectDirectory)\..\tools\create_update_bin.py" "$(OutputDirectory)\$(OutputFileName).bin" "$(OutputDirectory)\$(OutputFileName).upd"
 copy "$(OutputDirectory)\$(OutputFileName).upd"  $(OutputDirectory)\..\..\bin\</PostBuildEvent>
+    <PreBuildEvent>python.exe  "$(MSBuildProjectDirectory)\..\tools\create_revision_h.py" ..\..\..\..\.git\refs\remotes\origin\master ..\revision.h</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <ToolchainSettings>
@@ -177,6 +178,7 @@ copy "$(OutputDirectory)\$(OutputFileName).upd"  $(OutputDirectory)\..\..\bin\</
     <PostBuildEvent>"$(ToolchainDir)\avr-objcopy.exe" -O binary "$(OutputDirectory)\$(OutputFileName)$(OutputFileExtension)" "$(OutputDirectory)\$(OutputFileName).bin"
 python.exe  "$(MSBuildProjectDirectory)\..\tool\create_update_bin.py" "$(OutputDirectory)\$(OutputFileName).bin" "$(OutputDirectory)\$(OutputFileName).upd"
 copy "$(OutputDirectory)\$(OutputFileName).upd"  $(OutputDirectory)\..\..\bin\</PostBuildEvent>
+    <PreBuildEvent>python.exe  "$(MSBuildProjectDirectory)\..\tools\create_revision_h.py" ..\..\..\..\.git\refs\remotes\origin\master ..\revision.h</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release_Finfer' ">
     <ToolchainSettings>
@@ -245,6 +247,7 @@ copy "$(OutputDirectory)\$(OutputFileName)_finger.upd"  $(OutputDirectory)\..\..
     <OutputPath>bin\Release_Finfer\</OutputPath>
     <OutputFileName>spine_finger</OutputFileName>
     <OutputFileExtension>.elf</OutputFileExtension>
+    <PreBuildEvent>python.exe  "$(MSBuildProjectDirectory)\..\tools\create_revision_h.py" ..\..\..\..\.git\refs\remotes\origin\master ..\revision.h</PreBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release_Arm' ">
     <ToolchainSettings>
@@ -314,6 +317,7 @@ copy "$(OutputDirectory)\$(OutputFileName)_arm.upd"  $(OutputDirectory)\..\..\bi
     <OutputPath>bin\Release_Arm\</OutputPath>
     <OutputFileName>spine_arm</OutputFileName>
     <OutputFileExtension>.elf</OutputFileExtension>
+    <PreBuildEvent>python.exe  "$(MSBuildProjectDirectory)\..\tools\create_revision_h.py" ..\..\..\..\.git\refs\remotes\origin\master ..\revision.h</PreBuildEvent>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="main.cpp">

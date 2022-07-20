@@ -127,6 +127,8 @@ int lib4legs_spine_if_exec_debug(const SPINE spine, uint8_t val);
 int lib4legs_spine_if_write_flash(const SPINE spine, const uint32_t addr, const uint8_t *page);
 
 int lib4legs_spine_if_get_fw_version(const SPINE spine, uint32_t *version);
+int lib4legs_spine_if_get_fw_revision(const SPINE spine, char *str, size_t len);
+const char *lib4legs_spine_name(const SPINE spine);
 
 int lib4legs_spine_if_update(const SPINE spine, const uint8_t *fwbuf, size_t size);
 int lib4legs_spine_if_set_limit(const SPINE spine, const SPINE_SERVO_ID servo, uint16_t min_limit, uint16_t max_limit);
@@ -172,6 +174,7 @@ int lib4legs_power_check_power_good(void);
 #define LIB4LEGS_ERROR_NODEV						(0x80500003)
 #define LIB4LEGS_ERROR_BUSY							(0x80500004)
 #define LIB4LEGS_ERROR_NOT_NEEDED					(0x80500005)
+#define LIB4LEGS_ERROR_SIZE							(0x80500006)
 
 #define LIB4LEGS_ERROR_SPINE_IF_NOTFOUND			(0x80510000)
 #define LIB4LEGS_ERROR_SPINE_IF_NULL				(0x80510001)

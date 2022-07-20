@@ -41,10 +41,9 @@ static void _putchar(const char c)
 
 static void _setup_spines(void)
 {
-	int ret = 0;
 	for (int i=0 ; i<4 ; ++i) {
-		ret = cerebellum_spine_version_check_and_update(i, 0);
-		lib4legs_printf("Update spine %d firmware. 0x%08x\n", i, (uint32_t)ret);
+//		int ret = cerebellum_spine_version_check_and_update(i, 0);
+//		lib4legs_printf("Update spine %d firmware. 0x%08x\n", i, (uint32_t)ret);
 	}
 
 	// Setup Zero position.	

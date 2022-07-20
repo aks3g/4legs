@@ -44,10 +44,34 @@ static uint32_t sFlashWp = FLASH_HEAD;
 static uint32_t sFwSizeInPackets = 0;
 static uint8_t sFlashBuf[512];
 static uint32_t sFlashBufWp = 0;
+static int isHeader = 0;
+static int isFirstPage = 0;
+static uint8_t sHeader[128];
+static uint8_t sFirstPage[512];
+static uint32_t checksum = 0;
 
+static uint32_t _checksum32(uint8_t *buf, size_t size, uint32_t init)
+{
+	uint32_t sum = init;
+	uint32_t *buf32 = (uint32_t *)buf;
+	size_t size32 = size / sizeof(uint32_t);
+	
+	for (size_t i=0 ; i<size32 ; ++i) {
+		sum += buf32[i];
+	}
+	
+	return sum;
+}
 
 static uint8_t _fw_receive_cb(uint8_t status, const XmodemContext *ctx)
 {
+	if (isHeader) {
+		memcpy(sHeader, ctx->buf.arr, sizeof(sHeader));
+		isFirstPage = 1;
+		
+		return 0;
+	}	
+	
 	memcpy(&(sFlashBuf[sFlashBufWp]), ctx->buf.fd.data, 128);
 	sFlashBufWp += 128;
 
@@ -58,7 +82,13 @@ static uint8_t _fw_receive_cb(uint8_t status, const XmodemContext *ctx)
 			(void)samd51_nvmctrl_erase_block(sFlashWp, 1);
 		}
 
-		samd51_nvmctrl_write_page(sFlashWp, sFlashBuf, 1);
+		checksum = _checksum32(sFlashBuf, sizeof(sFlashBuf), checksum);
+		if (isFirstPage) {
+			memcpy(sFirstPage, sFlashBuf, sizeof(sFirstPage));
+		}
+		else {
+			samd51_nvmctrl_write_page(sFlashWp, sFlashBuf, 1);
+		}
 		memset(sFlashBuf, 0xff, sizeof(sFlashBuf));
 		sFlashWp += 512;
 		sFlashBufWp = 0;
@@ -80,7 +110,11 @@ void lib4legs_bootloader_update_main_fw(uint32_t fwsize)
 		lib4legs_timer_delay_ms(1000);
 	}
 
-//	xmodem_receive(&xmodemctx, _fw_receive_cb);
+	isHeader = 1;
+	xmodem_receive(&xmodemctx, _fw_receive_cb);
+
+	//Check and write 1st page
+	samd51_nvmctrl_write_page(FLASH_HEAD, sFirstPage, 1);
 
 	return;
 }

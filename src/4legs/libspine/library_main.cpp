@@ -75,8 +75,9 @@ typedef struct {
 			uint16_t servo2_pos;			// 0x28 - 0x29
 			uint16_t servo0_potention;		// 0x2A - 0x2B
 			uint16_t servo1_potention;		// 0x2C - 0x2D
-			uint16_t servo2_potention;		// 0x2E - 0x2F			
-			uint8_t  rsvd_0x30_0x77[72];	// 0x30 - 0x77
+			uint16_t servo2_potention;		// 0x2E - 0x2F
+			char     revision[16];			// 0x30 - 0x3F			
+			uint8_t  rsvd_0x40_0x77[56];	// 0x40 - 0x77
 			uint32_t flash_version;			// 0x78 - 0x7b
 			uint32_t flash_addr;			// 0x7c - 0x7f
 			uint8_t  flash_block[128];		// 0x80 - 0xff
@@ -102,12 +103,14 @@ static const Lib4legsRemap sRemap[4]
 	{{2,1,0},-1}
 };
 
-typedef struct 
+#if defined(TYPE_ARM)
+typedef struct
 {
 	uint16_t target;
 	uint16_t active;
 } Lib4legsLinerSlider;
 static Lib4legsLinerSlider sSlider = {0, 0};
+#endif
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -356,9 +359,8 @@ uint8_t libspine_shared_memory_read(uint8_t addr, uint8_t *buf, size_t len)
 	return SPINE_ERROR_OK;
 }
 
-
 /*---------------------------------------------------------------------------*/
-int libspine_initialize(uint8_t fwtype)
+int libspine_initialize(uint8_t fwtype, char *rev, size_t rev_size)
 {
 	//J GPIO‚ðÝ’è‚·‚é
 	_initialzie_gpio();
@@ -398,6 +400,10 @@ int libspine_initialize(uint8_t fwtype)
 	//J Fw Version‚ð“ü‚ê‚é
 	uint32_t pFwInfo = pgm_read_dword(0x2000 - 4);
 	si2c_buf.buf.map.flash_version = pFwInfo;
+
+	//J FW Revision‚ðÝ’è‚·‚é
+	rev_size = (rev_size > 16) ? 16 : rev_size;
+	memcpy((void *)si2c_buf.buf.map.revision, (void *)rev, rev_size);
 
 	libspine_update_servo_param(si2c_buf.buf.map.servo0_pulse_us, si2c_buf.buf.map.servo1_pulse_us, si2c_buf.buf.map.servo2_pulse_us);
 

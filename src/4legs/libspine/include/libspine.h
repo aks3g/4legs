@@ -56,6 +56,8 @@
 #define SPINE_MMAP_ADDR_SERVO2_POTENTION_L	0x2E
 #define SPINE_MMAP_ADDR_SERVO2_POTENTION_H	0x2F
 
+#define SPINE_MMAP_ADDR_REVISION_STR		0x30
+
 #define SPINE_MMAP_ADDR_FW_VERSION			0x78 // to 0x7b
 
 #define SPINE_MMAP_ADDR_FLASH_ADDR0			0x7C // LSB
@@ -63,6 +65,8 @@
 #define SPINE_MMAP_ADDR_FLASH_ADDR2			0x7E
 #define SPINE_MMAP_ADDR_FLASH_ADDR3			0x7F // MSB
 #define SPINE_MMAP_ADDR_FLASH_BUF_HEAD		0x80
+
+
 
 #define SPINE_MMAP_BUSY						0x01
 #define SPINE_RESTART_KEY					0x66
@@ -76,13 +80,15 @@
 #define SPINE_MMAP_ADDR_SERVO_MODE_ANGLE	0x01
 #define SPINE_MMAP_ADDR_SERVO_MODE_SEQENCE	0x80
 
+#define SPINE_MMAP_REVISION_STR_LEN			16
+
 #define SPINE_ERROR_OK						(0x00)
 #define SPINE_ERROR_NULL					(-1)
 #define SPINE_ERROR_INVAL					(-2)
 #define SPINE_ERROR_NODEV					(-3)
 #define SPINE_ERROR_NOBUF					(-4)
 
-int libspine_initialize(uint8_t type);
+int libspine_initialize(uint8_t fwtype, char *rev, size_t rev_size);
 int libspine_poll(void);
 void libspine_load_servo_param_from_shared_memory_all(void);
 

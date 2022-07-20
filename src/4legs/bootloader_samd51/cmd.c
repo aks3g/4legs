@@ -86,6 +86,8 @@ static int _validate_spine_fw(uint8_t *fwbin, uint32_t received_size, uint32_t m
 		return ERROR_FWUPDATE_CHECKSUM_ERROR;
 	}
 
+	*fwsize = header->fwsize;
+
 	return 0;
 }
 
@@ -627,6 +629,67 @@ static ConsoleCommand arm_cmd =
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
+static int spine_command(const int argc, const char **argv)
+{
+	char rev[SPINE_MMAP_REVISION_STR_LEN+1] = "";
+	for (int i=0 ; i< MAX_SPINE ; ++i) {
+		int ret = lib4legs_spine_if_get_fw_revision(i, rev, sizeof(rev));
+		if (ret != 0) {
+			lib4legs_printf("Fail to lib4legs_spine_if_get_fw_revision(), code = %08x\n", ret);	
+		}
+		else {
+			lib4legs_printf("%7s | %s\n", lib4legs_spine_name(i), rev);
+		}
+	}
+
+	return 0;
+}
+
+static const char *spine_help(void)
+{
+	return "Check Spine Fw";
+}
+
+static ConsoleCommand check_spine_cmd =
+{
+	.name = "spine",
+	.func = spine_command,
+	.help = spine_help,
+};
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+static int spine_read_command(const int argc, const char **argv)
+{
+	if (argc != 2) {
+		return -1;
+	}
+	
+	int spine = strtoul(argv[0], NULL, 10);
+	uint8_t addr = (uint8_t)strtoul(argv[1], NULL, 16);
+	
+	uint8_t val = 0;
+	int ret = lib4legs_spine_if_read_byte(spine, addr, &val);
+	
+	lib4legs_printf("Read from spine[%d][%02x] = %02x. code = %d\n", spine, addr, val, ret);
+	
+	return 0;
+}
+
+static const char *spine_read_help(void)
+{
+	return "Check Spine Fw";
+}
+
+static ConsoleCommand spine_read_cmd =
+{
+	.name = "spiner",
+	.func = spine_read_command,
+	.help = spine_read_help,
+};
+
+/*---------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 void initialize_commands(void)
 {
 	consoleInstallCommand(&arm_cmd);
@@ -640,5 +703,7 @@ void initialize_commands(void)
 	consoleInstallCommand(&dcdc_cmd);
 	consoleInstallCommand(&power_cmd);
 	consoleInstallCommand(&slider_cmd);
+	consoleInstallCommand(&check_spine_cmd);
+	consoleInstallCommand(&spine_read_cmd);
 }
 

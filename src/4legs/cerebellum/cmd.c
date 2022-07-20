@@ -106,15 +106,15 @@ static const char *diag_help(void)
 	return "diag";
 }
 
-extern uint8_t _binary_spine_bin_start;
-extern uint8_t _binary_spine_bin_end;
-extern uint8_t _binary_spine_bin_size;
+extern uint8_t _binary_spine_upd_start;
+extern uint8_t _binary_spine_upd_end;
+extern uint8_t _binary_spine_upd_size;
 
 static int diag_command(const int argc, const char **argv)
 {
-	lib4legs_printf("start 0x%08x\n", &_binary_spine_bin_start);
-	lib4legs_printf("end   0x%08x\n", &_binary_spine_bin_end);
-	lib4legs_printf("size  0x%08x\n", &_binary_spine_bin_size);
+	lib4legs_printf("start 0x%08x\n", &_binary_spine_upd_start);
+	lib4legs_printf("end   0x%08x\n", &_binary_spine_upd_end);
+	lib4legs_printf("size  0x%08x\n", &_binary_spine_upd_size);
 
 	uint8_t type = 0;
 	uint32_t version = 0;

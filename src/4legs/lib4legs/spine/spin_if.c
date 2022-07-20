@@ -306,6 +306,43 @@ int lib4legs_spine_if_get_fw_version(const SPINE spine, uint32_t *version)
 	return LIB4LEGS_ERROR_OK;
 }
 
+int lib4legs_spine_if_get_fw_revision(const SPINE spine, char *str, size_t len)
+{
+	uint8_t spine_slave_addr = _spineSlaveAddr(spine);
+	uint8_t i2c_if = _spineI2cIf(spine);
+	if (spine_slave_addr == 0) {
+		return LIB4LEGS_ERROR_SPINE_IF_NOTFOUND;
+	}
+
+	if (len < SPINE_MMAP_REVISION_STR_LEN+1) {
+		return LIB4LEGS_ERROR_SIZE;
+	}
+	
+	memset(str, 0, len);
+	_spine_read(i2c_if, spine_slave_addr, SPINE_MMAP_ADDR_REVISION_STR, (uint8_t *)str, SPINE_MMAP_REVISION_STR_LEN);
+	
+	return LIB4LEGS_ERROR_OK;	
+}
+
+const char *lib4legs_spine_name(const SPINE spine)
+{
+	static const char *cSpineNames[] = {
+		"SPINE 0",
+		"SPINE 1",
+		"SPINE 2",
+		"SPINE 3",
+		"ARM",
+		"FINGER",
+	};
+	
+	if (spine >= MAX_SPINE) {
+		return "Unknown Spine";
+	}
+	
+	return cSpineNames[(int)spine];
+}
+
+
 int lib4legs_spine_if_get_potention(const SPINE spine, SPINE_POTENTION *potention)
 {
 	uint8_t spine_slave_addr = _spineSlaveAddr(spine);

@@ -13,9 +13,18 @@
 #include "lib4legs.h"
 #include "libspine.h"
 
-extern uint8_t _binary_spine_bin_start;
-extern uint8_t _binary_spine_bin_end;
-extern uint8_t _binary_spine_bin_size;
+extern uint8_t _binary_spine_upd_start;
+extern uint8_t _binary_spine_upd_end;
+extern uint8_t _binary_spine_upd_size;
+
+typedef struct
+{
+	uint32_t magic;
+	uint32_t version;
+	uint32_t fwsize;
+	uint32_t sum;
+	uint8_t  pad[112];
+} UpdFileHeader;
 
 static uint8_t _spinefw_buf[8*1024];
 
@@ -44,8 +53,11 @@ int cerebellum_spine_version_check_and_update(SPINE spine, int force)
 	lib4legs_spine_if_exec_bootloader(spine);
 	lib4legs_timer_delay_ms(100);
 
-	uint8_t *p_spine_fw = &_binary_spine_bin_start;
-	uint32_t spine_fw_size = (uint32_t)&_binary_spine_bin_size;
+	uint8_t *p_spine_fw = &_binary_spine_upd_start;
+	uint32_t spine_fw_size = (uint32_t)&_binary_spine_upd_size;
+	
+	UpdFileHeader *header = (UpdFileHeader *)&_binary_spine_upd_start;
+	spine_fw_size = header->fwsize;
 
 	if (sizeof(_spinefw_buf) < spine_fw_size) {
 		return LIB4LEGS_ERROR_NOBUF;
@@ -53,7 +65,7 @@ int cerebellum_spine_version_check_and_update(SPINE spine, int force)
 
 	//J 8KiBのバッファにファームとVersion情報を付与
 	memset(_spinefw_buf, 0xff, sizeof(_spinefw_buf));
-	memcpy(_spinefw_buf, p_spine_fw, spine_fw_size);
+	memcpy(_spinefw_buf, &(p_spine_fw[128]), spine_fw_size);
 	memcpy(&_spinefw_buf[sizeof(_spinefw_buf) - 4], &cSpineFwVersion, sizeof(cSpineFwVersion));
 
 	lib4legs_spine_if_update(spine, _spinefw_buf, sizeof(_spinefw_buf));

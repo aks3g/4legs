@@ -4,6 +4,7 @@
  * Created: 2021/12/30 6:46:15
  * Author : kiyot
  */ 
+#include <string.h>
 
 #include <libxmegaE5_error.h>
 #include <libxmegaE5_utils.h>
@@ -11,6 +12,9 @@
 #include <libxmegaE5_timer.h>
 
 #include <libspine.h>
+
+#include "revision.h" // Auto generated from build system.
+static char sRev[] = REVISION_STR;
 
 static int16_t sAngle[3] = {0,0,0};
 static void _servo_update_cb(void)
@@ -29,7 +33,8 @@ static void _servo_update_cb(void)
 
 int main(void)
 {
-	libspine_initialize(SPINE_MMAP_TYPE_APPLICATION);
+	libspine_initialize(SPINE_MMAP_TYPE_APPLICATION, sRev, strlen(sRev));
+	
 	libspine_register_servo_update_cb(_servo_update_cb);
 
     /* Replace with your application code */
